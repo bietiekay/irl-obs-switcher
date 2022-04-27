@@ -8,5 +8,8 @@
         public string? forwardIp { get; set; }
         public ushort? forwardPort { get; set; }
         public ushort? timeOut { get; set; }
+        public string? OBSsceneOnConnect { get; set; }
+        public string? OBSsceneOnDisconnect { get; set; }
+        public string? SemaphoreFileWhenConnected { get; set; }
     }
 }

@@ -1,4 +1,4 @@
-﻿namespace IRLOBSSwitcher
+﻿namespace NetProxy
 {
     internal interface IProxy
     {

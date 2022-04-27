@@ -1,4 +1,6 @@
-﻿namespace IRLOBSSwitcher
+﻿using NetProxy;
+
+namespace IRLOBSSwitcher
 {
     internal static class Program
     {
@@ -30,6 +32,10 @@
             var localIp = proxyConfig.localIp;
             var protocol = proxyConfig.protocol;
             var timeOut = proxyConfig.timeOut;
+            var OBSsceneOnConnect = proxyConfig.OBSsceneOnConnect;
+            var OBSsceneOnDisconnect = proxyConfig.OBSsceneOnDisconnect;
+            var SemaphoreFileWhenConnected = proxyConfig.SemaphoreFileWhenConnected;
+
             try
             {
                 if (timeOut == null)

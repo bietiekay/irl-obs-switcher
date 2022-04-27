@@ -4,20 +4,29 @@
     "protocol": "udp",
     "forwardIp": "35.187.92.120",
     "forwardPort": 7777,
-    "timeOut": 1
+    "timeOut": 1,
+    "OBSsceneOnConnect": "IRL-Stream",
+    "OBSsceneOnDisconnect": "Disconnect",
+    "SemaphoreFileWhenConnected": "IRL-Connected.sem"
   },
   "http": {
     "localPort": 80,
     "protocol": "tcp",
     "forwardIp": "149.56.107.33",
     "forwardPort": 81,
-    "timeOut": 1
+    "timeOut": 1,
+    "OBSsceneOnConnect": "On",
+    "OBSsceneOnDisconnect": "Off",
+    "SemaphoreFileWhenConnected": "On.sem"
   },
   "https": {
     "localPort": 8443,
     "protocol": "any",
     "forwardIp": "35.187.92.120",
     "forwardPort": 443,
-    "timeOut": 1
+    "timeOut": 1,
+    "OBSsceneOnConnect": "On",
+    "OBSsceneOnDisconnect": "Off",
+    "SemaphoreFileWhenConnected": "On.sem"
   }
 }
