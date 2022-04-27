@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "irl-obs-switcher": {
+      "commandName": "Project"
+    },
+    "Docker": {
+      "commandName": "Docker"
+    }
+  }
+}

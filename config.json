@@ -1,0 +1,23 @@
+﻿{
+  "testUdp": {
+    "localPort": 7777,
+    "protocol": "udp",
+    "forwardIp": "35.187.92.120",
+    "forwardPort": 7777,
+    "timeOut": 1
+  },
+  "http": {
+    "localPort": 80,
+    "protocol": "tcp",
+    "forwardIp": "149.56.107.33",
+    "forwardPort": 81,
+    "timeOut": 1
+  },
+  "https": {
+    "localPort": 8443,
+    "protocol": "any",
+    "forwardIp": "35.187.92.120",
+    "forwardPort": 443,
+    "timeOut": 1
+  }
+}
