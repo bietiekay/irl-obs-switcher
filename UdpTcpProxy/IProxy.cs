@@ -2,6 +2,6 @@
 {
     internal interface IProxy
     {
-        Task Start(string remoteServerHostNameOrAddress, ushort timeOut, ushort remoteServerPort, ushort localPort, string? localIp = null);
+        Task Start(string remoteServerHostNameOrAddress, ushort timeOut, ushort remoteServerPort, ushort localPort, IRLOBSSwitcher.OBSManager OBS_Manager, string? localIp = null);
     }
 }

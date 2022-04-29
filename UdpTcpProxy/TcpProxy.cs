@@ -1,4 +1,5 @@
 ﻿#nullable enable
+using ConsoleLogger;
 using System;
 using System.Buffers;
 using System.Collections.Concurrent;
@@ -17,24 +18,26 @@ namespace NetProxy
         /// Milliseconds
         /// </summary>
         public int ConnectionTimeout { get; set; } = (4 * 60 * 1000);
+        public IRLOBSSwitcher.OBSManager? OBS_SceneManager;
 
-        public async Task Start(string remoteServerHostNameOrAddress, ushort timeOut, ushort remoteServerPort, ushort localPort, string? localIp)
+        public async Task Start(string remoteServerHostNameOrAddress, ushort timeOut, ushort remoteServerPort, ushort localPort, IRLOBSSwitcher.OBSManager OBS_Manager, string? localIp)
         {
-            ConnectionTimeout = timeOut * 1000;
+            ConnectionTimeout = timeOut;
             var connections = new ConcurrentBag<TcpConnection>();
+            OBS_SceneManager = OBS_Manager;
 
             IPAddress localIpAddress = string.IsNullOrEmpty(localIp) ? IPAddress.IPv6Any : IPAddress.Parse(localIp);
             var localServer = new TcpListener(new IPEndPoint(localIpAddress, localPort));
             localServer.Server.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.IPv6Only, false);
             localServer.Start();
 
-            Console.WriteLine($"TCP proxy started [{localIpAddress}]:{localPort} -> [{remoteServerHostNameOrAddress}]:{remoteServerPort}");
+            ConsoleLog.WriteLine($"TCP proxy started [{localIpAddress}]:{localPort} -> [{remoteServerHostNameOrAddress}]:{remoteServerPort}");
 
             var _ = Task.Run(async () =>
             {
                 while (true)
                 {
-                    await Task.Delay(TimeSpan.FromSeconds(10)).ConfigureAwait(false);
+                    await Task.Delay(TimeSpan.FromMilliseconds(100)).ConfigureAwait(false);
 
                     var tempConnections = new List<TcpConnection>(connections.Count);
                     while (connections.TryTake(out var connection))
@@ -62,7 +65,7 @@ namespace NetProxy
                 {
                     var ips = await Dns.GetHostAddressesAsync(remoteServerHostNameOrAddress).ConfigureAwait(false);
 
-                    var tcpConnection = await TcpConnection.AcceptTcpClientAsync(localServer,
+                    var tcpConnection = await TcpConnection.AcceptTcpClientAsync(OBS_SceneManager, localServer,
                             new IPEndPoint(ips[0], remoteServerPort))
                         .ConfigureAwait(false);
                     tcpConnection.Run();
@@ -70,9 +73,7 @@ namespace NetProxy
                 }
                 catch (Exception ex)
                 {
-                    Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine(ex);
-                    Console.ResetColor();
+                    ConsoleLog.WriteLine(ex.Message);                    
                 }
             }
         }
@@ -90,16 +91,19 @@ namespace NetProxy
         private long _totalBytesForwarded;
         private long _totalBytesResponded;
         public long LastActivity { get; private set; } = Environment.TickCount64;
+        private IRLOBSSwitcher.OBSManager? OBS_SceneManager;
 
-        public static async Task<TcpConnection> AcceptTcpClientAsync(TcpListener tcpListener, IPEndPoint remoteEndpoint)
+        public static async Task<TcpConnection> AcceptTcpClientAsync(IRLOBSSwitcher.OBSManager OBS_Manager, TcpListener tcpListener, IPEndPoint remoteEndpoint)
         {
             var localServerConnection = await tcpListener.AcceptTcpClientAsync().ConfigureAwait(false);
             localServerConnection.NoDelay = true;
-            return new TcpConnection(localServerConnection, remoteEndpoint);
+            return new TcpConnection(OBS_Manager, localServerConnection, remoteEndpoint);
         }
 
-        private TcpConnection(TcpClient localServerConnection, IPEndPoint remoteEndpoint)
+        private TcpConnection(IRLOBSSwitcher.OBSManager OBS_Manager, TcpClient localServerConnection, IPEndPoint remoteEndpoint)
         {
+            OBS_SceneManager = OBS_Manager;
+
             _localServerConnection = localServerConnection;
             _remoteEndpoint = remoteEndpoint;
 
@@ -122,7 +126,7 @@ namespace NetProxy
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"An exception occurred while closing TcpConnection : {ex}");
+                ConsoleLog.WriteLine($"An exception occurred while closing TcpConnection : {ex}");
             }
         }
 
@@ -138,7 +142,10 @@ namespace NetProxy
                         await _forwardClient.ConnectAsync(_remoteEndpoint.Address, _remoteEndpoint.Port, cancellationToken).ConfigureAwait(false);
                         _forwardLocalEndpoint = _forwardClient.Client.LocalEndPoint;
 
-                        Console.WriteLine($"Established TCP {_sourceEndpoint} => {_serverLocalEndpoint} => {_forwardLocalEndpoint} => {_remoteEndpoint}");
+                        ConsoleLog.WriteLine($"Established TCP {_sourceEndpoint} => {_serverLocalEndpoint} => {_forwardLocalEndpoint} => {_remoteEndpoint}");
+
+                        // Tell OBS Manager about the new connection
+                        OBS_SceneManager?.Connect();
 
                         using (var serverStream = _forwardClient.GetStream())
                         using (var clientStream = _localServerConnection.GetStream())
@@ -157,11 +164,13 @@ namespace NetProxy
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"An exception occurred during TCP stream : {ex}");
+                    ConsoleLog.WriteLine($"An exception occurred during TCP stream : {ex}");
                 }
                 finally
                 {
-                    Console.WriteLine($"Closed TCP {_sourceEndpoint} => {_serverLocalEndpoint} => {_forwardLocalEndpoint} => {_remoteEndpoint}. {_totalBytesForwarded} bytes forwarded, {_totalBytesResponded} bytes responded.");
+                    ConsoleLog.WriteLine($"Closed TCP {_sourceEndpoint} => {_serverLocalEndpoint} => {_forwardLocalEndpoint} => {_remoteEndpoint}. {_totalBytesForwarded} bytes forwarded, {_totalBytesResponded} bytes responded.");
+                    // Tell OBS Manager about the lost connection
+                    OBS_SceneManager?.Disconnect();
                 }
             });
         }

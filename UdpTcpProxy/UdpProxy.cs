@@ -1,4 +1,5 @@
 ﻿#nullable enable
+using ConsoleLogger;
 using System;
 using System.Collections.Concurrent;
 using System.Net;
@@ -14,10 +15,12 @@ namespace NetProxy
         /// Milliseconds
         /// </summary>
         public int ConnectionTimeout { get; set; } = (4 * 60 * 1000);
+        public IRLOBSSwitcher.OBSManager? OBS_SceneManager;
 
-        public async Task Start(string remoteServerHostNameOrAddress, ushort timeOut, ushort remoteServerPort, ushort localPort, string? localIp = null)
+        public async Task Start(string remoteServerHostNameOrAddress, ushort timeOut, ushort remoteServerPort, ushort localPort, IRLOBSSwitcher.OBSManager OBS_Manager, string? localIp = null)
         {
-            ConnectionTimeout = timeOut * 1000;
+            OBS_SceneManager = OBS_Manager;
+            ConnectionTimeout = timeOut; // Connection Timeout in milliseconds in which activity on this port needs to happen or this would be considered a "dead connection" and closed / scene switched
             var connections = new ConcurrentDictionary<IPEndPoint, UdpConnection>();
 
             // TCP will lookup every time while this is only once.
@@ -29,16 +32,16 @@ namespace NetProxy
             IPAddress localIpAddress = string.IsNullOrEmpty(localIp) ? IPAddress.IPv6Any : IPAddress.Parse(localIp);
             localServer.Client.Bind(new IPEndPoint(localIpAddress, localPort));
 
-            Console.WriteLine($"UDP proxy started [{localIpAddress}]:{localPort} -> [{remoteServerHostNameOrAddress}]:{remoteServerPort}");
+            ConsoleLog.WriteLine($"UDP proxy started [{localIpAddress}]:{localPort} -> [{remoteServerHostNameOrAddress}]:{remoteServerPort}");
 
             var _ = Task.Run(async () =>
             {
                 while (true)
                 {
-                    await Task.Delay(TimeSpan.FromSeconds(10)).ConfigureAwait(false);
+                    await Task.Delay(TimeSpan.FromMilliseconds(100)).ConfigureAwait(false);
                     foreach (var connection in connections.ToArray())
                     {
-                        if (connection.Value.LastActivity + ConnectionTimeout < Environment.TickCount64)
+                        if (connection.Value.LastActivity + (ConnectionTimeout) < Environment.TickCount64)
                         {
                             connections.TryRemove(connection.Key, out UdpConnection? c);
                             connection.Value.Stop();
@@ -56,15 +59,20 @@ namespace NetProxy
                     var client = connections.GetOrAdd(sourceEndPoint,
                         ep =>
                         {
-                            var udpConnection = new UdpConnection(localServer, sourceEndPoint, remoteServerEndPoint);
+                            var udpConnection = new UdpConnection(OBS_SceneManager, localServer, sourceEndPoint, remoteServerEndPoint);
                             udpConnection.Run();
                             return udpConnection;
                         });
                     await client.SendToServerAsync(message.Buffer).ConfigureAwait(false);
+                    // Tell OBS Manager about the connection
+                    OBS_SceneManager?.Connect();
+
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"an exception occurred on receiving a client datagram: {ex}");
+                    //ConsoleLog.WriteLine($"an exception occurred on receiving a client datagram: {ex}");
+                    ConsoleLog.WriteLine("An exception occurred while trying to forward the data.");
+                    OBS_SceneManager?.Disconnect();
                 }
             }
         }
@@ -83,9 +91,11 @@ namespace NetProxy
         private long _totalBytesForwarded;
         private long _totalBytesResponded;
         private readonly TaskCompletionSource<bool> _forwardConnectionBindCompleted = new TaskCompletionSource<bool>();
+        private IRLOBSSwitcher.OBSManager? OBS_SceneManager;
 
-        public UdpConnection(UdpClient localServer, IPEndPoint sourceEndpoint, IPEndPoint remoteEndpoint)
+        public UdpConnection(IRLOBSSwitcher.OBSManager OBS_Manager, UdpClient localServer, IPEndPoint sourceEndpoint, IPEndPoint remoteEndpoint)
         {
+            OBS_SceneManager = OBS_Manager;
             _localServer = localServer;
             _serverLocalEndpoint = _localServer.Client.LocalEndPoint;
 
@@ -94,6 +104,10 @@ namespace NetProxy
             _sourceEndpoint = sourceEndpoint;
 
             _forwardClient = new UdpClient(AddressFamily.InterNetworkV6);
+            
+            _forwardClient.Client.SendTimeout = 1000;
+            _forwardClient.Client.ReceiveTimeout = 1000;
+            
             _forwardClient.Client.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.IPv6Only, false);
         }
 
@@ -115,7 +129,7 @@ namespace NetProxy
                     _forwardClient.Client.Bind(new IPEndPoint(IPAddress.Any, 0));
                     _forwardLocalEndpoint = _forwardClient.Client.LocalEndPoint;
                     _forwardConnectionBindCompleted.SetResult(true);
-                    Console.WriteLine($"Established UDP {_sourceEndpoint} => {_serverLocalEndpoint} => {_forwardLocalEndpoint} => {_remoteEndpoint}");
+                    ConsoleLog.WriteLine($"Established UDP {_sourceEndpoint} => {_serverLocalEndpoint} => {_forwardLocalEndpoint} => {_remoteEndpoint}");
 
                     while (_isRunning)
                     {
@@ -130,7 +144,8 @@ namespace NetProxy
                         {
                             if (_isRunning)
                             {
-                                Console.WriteLine($"An exception occurred while receiving a server datagram : {ex}");
+                                //ConsoleLog.WriteLine($"An exception occurred while receiving a server datagram : {ex}");
+                                ConsoleLog.WriteLine("An exception occurred while receiving a server datagram");
                             }
                         }
                     }
@@ -142,13 +157,19 @@ namespace NetProxy
         {
             try
             {
-                Console.WriteLine($"Closed UDP {_sourceEndpoint} => {_serverLocalEndpoint} => {_forwardLocalEndpoint} => {_remoteEndpoint}. {_totalBytesForwarded} bytes forwarded, {_totalBytesResponded} bytes responded.");
+                ConsoleLog.WriteLine($"Closed UDP {_sourceEndpoint} => {_serverLocalEndpoint} => {_forwardLocalEndpoint} => {_remoteEndpoint}. {_totalBytesForwarded} bytes forwarded, {_totalBytesResponded} bytes responded.");
+                _forwardClient.Dispose();
+                
+                // Tell OBS Manager about the lost connection
+                OBS_SceneManager?.Disconnect();
+
                 _isRunning = false;
                 _forwardClient.Close();
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"An exception occurred while closing UdpConnection : {ex}");
+                //ConsoleLog.WriteLine($"An exception occurred while closing UdpConnection : {ex}");
+                ConsoleLog.WriteLine("An exception occurred while closing the UDP connection");
             }
         }
     }

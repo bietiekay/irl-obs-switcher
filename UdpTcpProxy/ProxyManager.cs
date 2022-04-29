@@ -1,4 +1,5 @@
-﻿using NetProxy;
+﻿using ConsoleLogger;
+using NetProxy;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,28 +10,25 @@ namespace IRLOBSSwitcher
 {
     public static class ProxyManager
     {
-        public static IEnumerable<Task> ProxyFromConfig(ProxyConnection proxyConfig)
+        public static IEnumerable<Task> ProxyFromConfig(OBSManager OBS_Manager, ProxyConnection proxyConfig)
         {
             var forwardPort = proxyConfig.forwardPort;
             var localPort = proxyConfig.localPort;
-            var forwardIp = proxyConfig.forwardIp;
+            var forwardHost = proxyConfig.forwardHost;
             var localIp = proxyConfig.localIp;
             var protocol = proxyConfig.protocol;
             var timeOut = proxyConfig.timeOut;
-            var OBSsceneOnConnect = proxyConfig.OBSsceneOnConnect;
-            var OBSsceneOnDisconnect = proxyConfig.OBSSceneOnDisconnect;
-            var SemaphoreFileWhenConnected = proxyConfig.SemaphoreFileWhenConnected;
+            var OBS_SceneManager = OBS_Manager;
 
-
-            var proxyName = forwardPort.ToString() + "->" + forwardIp + ":" + forwardPort.ToString();
-
+            var proxyName = forwardPort.ToString() + "->" + forwardHost + ":" + forwardPort.ToString();
+            #region error check
             try
             {
                 if (timeOut == null)
                     timeOut = 1;
-                if (forwardIp == null)
+                if (forwardHost == null)
                 {
-                    throw new Exception("forwardIp is null");
+                    throw new Exception("forwardHost is null");
                 }
                 if (!forwardPort.HasValue)
                 {
@@ -40,16 +38,20 @@ namespace IRLOBSSwitcher
                 {
                     throw new Exception("localPort is null");
                 }
-                if (protocol != "udp" && protocol != "tcp" && protocol != "any")
+                if (protocol != null)
+                    protocol = protocol.ToLower();
+
+                if (protocol != "udp" && protocol != "tcp" && protocol != "any" && protocol != "srt" && protocol != "rtmp")
                 {
                     throw new Exception($"protocol is not supported {protocol}");
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Failed to start {proxyName} : {ex.Message}");
+                ConsoleLog.WriteLine($"Failed to start {proxyName} : {ex.Message}");
                 throw;
             }
+            #endregion
 
             bool protocolHandled = false;
             if (protocol == "udp" || protocol == "srt" || protocol == "any")
@@ -59,11 +61,11 @@ namespace IRLOBSSwitcher
                 try
                 {
                     var proxy = new UdpProxy();
-                    task = proxy.Start(forwardIp, timeOut.Value, forwardPort.Value, localPort.Value, localIp);
+                    task = proxy.Start(forwardHost, timeOut.Value, forwardPort.Value, localPort.Value, OBS_SceneManager, localIp);
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Failed to start {proxyName} : {ex.Message}");
+                    ConsoleLog.WriteLine($"Failed to start {proxyName} : {ex.Message}");
                     throw;
                 }
 
@@ -77,11 +79,11 @@ namespace IRLOBSSwitcher
                 try
                 {
                     var proxy = new TcpProxy();
-                    task = proxy.Start(forwardIp, timeOut.Value, forwardPort.Value, localPort.Value, localIp);
+                    task = proxy.Start(forwardHost, timeOut.Value, forwardPort.Value, localPort.Value, OBS_SceneManager, localIp);
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Failed to start {proxyName} : {ex.Message}");
+                    ConsoleLog.WriteLine($"Failed to start {proxyName} : {ex.Message}");
                     throw;
                 }
 

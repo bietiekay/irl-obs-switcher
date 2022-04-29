@@ -1,34 +1,19 @@
 ﻿{
+  "OBSWebSocketConnection": {
+    "OBSWebSocketHost": "localhost",
+    "OBSWebSocketPort": 4444,
+    "OBSWebSocketPassword": "password",
+    "OBSsceneOnConnect": "connected",
+    "OBSsceneOnDisconnect": "disconnected",
+    "SemaphoreFileWhenConnected": "IRL-Connected.sem"    
+  },
   "ProxyConnections": [
     {
       "localPort": 7777,
-      "protocol": "udp",
-      "forwardIp": "88.198.34.76",
+      "protocol": "srt",
+      "forwardHost": "192.168.178.106",
       "forwardPort": 22222,
-      "timeOut": 1,
-      "OBSsceneOnConnect": "IRL-Stream",
-      "OBSsceneOnDisconnect": "Disconnect",
-      "SemaphoreFileWhenConnected": "IRL-Connected.sem"
-    },
-    {
-      "localPort": 80,
-      "protocol": "tcp",
-      "forwardIp": "127.0.0.1",
-      "forwardPort": 81,
-      "timeOut": 1,
-      "OBSsceneOnConnect": "On",
-      "OBSsceneOnDisconnect": "Off",
-      "SemaphoreFileWhenConnected": "on80.sem"
-    },
-    {
-      "localPort": 8443,
-      "protocol": "any",
-      "forwardIp": "127.0.0.1",
-      "forwardPort": 81,
-      "timeOut": 1,
-      "OBSsceneOnConnect": "On",
-      "OBSsceneOnDisconnect": "Off",
-      "SemaphoreFileWhenConnected": "on8443.sem"
-    }
+      "timeOut": 500
+    }  
   ]
 }
