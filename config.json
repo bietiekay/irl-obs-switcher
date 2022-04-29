@@ -1,32 +1,34 @@
 ﻿{
-  "testUdp": {
-    "localPort": 7777,
-    "protocol": "udp",
-    "forwardIp": "35.187.92.120",
-    "forwardPort": 7777,
-    "timeOut": 1,
-    "OBSsceneOnConnect": "IRL-Stream",
-    "OBSsceneOnDisconnect": "Disconnect",
-    "SemaphoreFileWhenConnected": "IRL-Connected.sem"
-  },
-  "http": {
-    "localPort": 80,
-    "protocol": "tcp",
-    "forwardIp": "149.56.107.33",
-    "forwardPort": 81,
-    "timeOut": 1,
-    "OBSsceneOnConnect": "On",
-    "OBSsceneOnDisconnect": "Off",
-    "SemaphoreFileWhenConnected": "On.sem"
-  },
-  "https": {
-    "localPort": 8443,
-    "protocol": "any",
-    "forwardIp": "35.187.92.120",
-    "forwardPort": 443,
-    "timeOut": 1,
-    "OBSsceneOnConnect": "On",
-    "OBSsceneOnDisconnect": "Off",
-    "SemaphoreFileWhenConnected": "On.sem"
-  }
+  "ProxyConnections": [
+    {
+      "localPort": 7777,
+      "protocol": "udp",
+      "forwardIp": "88.198.34.76",
+      "forwardPort": 22222,
+      "timeOut": 1,
+      "OBSsceneOnConnect": "IRL-Stream",
+      "OBSsceneOnDisconnect": "Disconnect",
+      "SemaphoreFileWhenConnected": "IRL-Connected.sem"
+    },
+    {
+      "localPort": 80,
+      "protocol": "tcp",
+      "forwardIp": "127.0.0.1",
+      "forwardPort": 81,
+      "timeOut": 1,
+      "OBSsceneOnConnect": "On",
+      "OBSsceneOnDisconnect": "Off",
+      "SemaphoreFileWhenConnected": "on80.sem"
+    },
+    {
+      "localPort": 8443,
+      "protocol": "any",
+      "forwardIp": "127.0.0.1",
+      "forwardPort": 81,
+      "timeOut": 1,
+      "OBSsceneOnConnect": "On",
+      "OBSsceneOnDisconnect": "Off",
+      "SemaphoreFileWhenConnected": "on8443.sem"
+    }
+  ]
 }
