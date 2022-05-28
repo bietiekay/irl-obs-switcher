@@ -70,3 +70,11 @@ This will build the image and name it "irl-obs-switcher". The default config.jso
 
 Most probably you will want to change the forward hosts and OBS host settings to use the correct mapped ip adress depending on your environment.
 
+## configuration of OBS Studio
+In the obs-settings folder of there is a .json file which you can import into OBS and get some sample "connected" and "disconnected" scenes. Essentially this looks like this:
+
+### connected scene
+![](obs-settings/connected-scene%20srt%20settings.png)
+
+### disconnected scene
+![](obs-settings/disconnected%20scene.png)
