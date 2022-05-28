@@ -1,4 +1,4 @@
-# IRL (in real life) OBS Switcher (and Proxy)
+# IRL (in real life) OBS scene switcher (and Proxy)
 
 ## Why? 
 I needed a small and simple tool which can proxy TCP and UDP connections, like RTMP or SRT live-streams, and can react upon the availability of these streams.
