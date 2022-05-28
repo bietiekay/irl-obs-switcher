@@ -25,12 +25,11 @@ namespace IRLOBSSwitcher
                 {
                     throw new Exception("config is wrong");
                 }
-
                 // instantiate the OBS WebSocket Connection Object...
                 if (configuration.OBSWebSocketConnection != null)
                 {
                     OBSManager OBS_SceneManager = new OBSManager(configuration.OBSWebSocketConnection);
-
+                
                     if (configuration.ProxyConnections != null)
                     {
                         var tasks = configuration.ProxyConnections.SelectMany(c => ProxyManager.ProxyFromConfig(OBS_SceneManager,c));

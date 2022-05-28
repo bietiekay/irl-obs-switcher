@@ -20,7 +20,7 @@ namespace NetProxy
         public int ConnectionTimeout { get; set; } = (4 * 60 * 1000);
         public IRLOBSSwitcher.OBSManager? OBS_SceneManager;
 
-        public async Task Start(string remoteServerHostNameOrAddress, ushort timeOut, ushort remoteServerPort, ushort localPort, IRLOBSSwitcher.OBSManager OBS_Manager, string? localIp)
+        public async Task Start(string remoteServerHostNameOrAddress, ushort timeOut, ushort sceneSwitchOverTime, ushort remoteServerPort, ushort localPort, IRLOBSSwitcher.OBSManager OBS_Manager, string? localIp)
         {
             ConnectionTimeout = timeOut;
             var connections = new ConcurrentBag<TcpConnection>();
@@ -66,7 +66,7 @@ namespace NetProxy
                     var ips = await Dns.GetHostAddressesAsync(remoteServerHostNameOrAddress).ConfigureAwait(false);
 
                     var tcpConnection = await TcpConnection.AcceptTcpClientAsync(OBS_SceneManager, localServer,
-                            new IPEndPoint(ips[0], remoteServerPort))
+                            new IPEndPoint(ips[0], remoteServerPort), sceneSwitchOverTime)
                         .ConfigureAwait(false);
                     tcpConnection.Run();
                     connections.Add(tcpConnection);
@@ -92,21 +92,22 @@ namespace NetProxy
         private long _totalBytesResponded;
         public long LastActivity { get; private set; } = Environment.TickCount64;
         private IRLOBSSwitcher.OBSManager? OBS_SceneManager;
+        private ushort _SceneSwitchOverTime;
 
-        public static async Task<TcpConnection> AcceptTcpClientAsync(IRLOBSSwitcher.OBSManager OBS_Manager, TcpListener tcpListener, IPEndPoint remoteEndpoint)
+        public static async Task<TcpConnection> AcceptTcpClientAsync(IRLOBSSwitcher.OBSManager OBS_Manager, TcpListener tcpListener, IPEndPoint remoteEndpoint, ushort SceneSwitchOverTime)
         {
             var localServerConnection = await tcpListener.AcceptTcpClientAsync().ConfigureAwait(false);
             localServerConnection.NoDelay = true;
-            return new TcpConnection(OBS_Manager, localServerConnection, remoteEndpoint);
+            return new TcpConnection(OBS_Manager, localServerConnection, remoteEndpoint, SceneSwitchOverTime);
         }
 
-        private TcpConnection(IRLOBSSwitcher.OBSManager OBS_Manager, TcpClient localServerConnection, IPEndPoint remoteEndpoint)
+        private TcpConnection(IRLOBSSwitcher.OBSManager OBS_Manager, TcpClient localServerConnection, IPEndPoint remoteEndpoint, ushort SceneSwitchOverTime)
         {
             OBS_SceneManager = OBS_Manager;
 
             _localServerConnection = localServerConnection;
             _remoteEndpoint = remoteEndpoint;
-
+            _SceneSwitchOverTime = SceneSwitchOverTime;
             _forwardClient = new TcpClient {NoDelay = true};
 
             _sourceEndpoint = _localServerConnection.Client.RemoteEndPoint;

@@ -25,6 +25,7 @@ namespace IRLOBSSwitcher
         public string? forwardHost { get; set; }
         public ushort? forwardPort { get; set; }
         public ushort? timeOut { get; set; }
+        public ushort? switchToConnectedTime { get; set; }
     }
 
     public class ConfigurationRoot

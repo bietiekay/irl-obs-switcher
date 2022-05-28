@@ -18,6 +18,7 @@ namespace IRLOBSSwitcher
             var localIp = proxyConfig.localIp;
             var protocol = proxyConfig.protocol;
             var timeOut = proxyConfig.timeOut;
+            var sceneSwitchOverTime = proxyConfig.switchToConnectedTime;
             var OBS_SceneManager = OBS_Manager;
 
             var proxyName = forwardPort.ToString() + "->" + forwardHost + ":" + forwardPort.ToString();
@@ -61,7 +62,7 @@ namespace IRLOBSSwitcher
                 try
                 {
                     var proxy = new UdpProxy();
-                    task = proxy.Start(forwardHost, timeOut.Value, forwardPort.Value, localPort.Value, OBS_SceneManager, localIp);
+                    task = proxy.Start(forwardHost, timeOut.Value, sceneSwitchOverTime.Value, forwardPort.Value, localPort.Value, OBS_SceneManager, localIp);
                 }
                 catch (Exception ex)
                 {
@@ -79,7 +80,7 @@ namespace IRLOBSSwitcher
                 try
                 {
                     var proxy = new TcpProxy();
-                    task = proxy.Start(forwardHost, timeOut.Value, forwardPort.Value, localPort.Value, OBS_SceneManager, localIp);
+                    task = proxy.Start(forwardHost, timeOut.Value, sceneSwitchOverTime.Value, forwardPort.Value, localPort.Value, OBS_SceneManager, localIp);
                 }
                 catch (Exception ex)
                 {

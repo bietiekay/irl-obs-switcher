@@ -11,9 +11,10 @@
     {
       "localPort": 7777,
       "protocol": "srt",
-      "forwardHost": "192.168.178.106",
-      "forwardPort": 22222,
-      "timeOut": 500
+      "forwardHost": "127.0.0.1",
+      "forwardPort": 10000,
+      "timeOut": 500,
+      "switchToConnectedTime": 1000
     }  
   ]
 }

@@ -64,13 +64,15 @@ namespace IRLOBSSwitcher
                         }
                         catch (AuthFailureException)
                         {
-                            ConsoleLog.WriteLine("OBS WebSocket Authentication failed");
+                            ConsoleLog.WriteLine("OBS WebSocket Authentication failed - Exiting.");
                             break;
                         }
                         catch (ErrorResponseException ex)
                         {
                             ConsoleLog.WriteLine("OBS WebSocket Connect failed: " + ex.Message);
-                            break;
+
+                            ConsoleLog.WriteLine("Retrying to connect to OBS WebSocket...");
+                            Thread.Sleep(2000);
                         }
 
                     } else
