@@ -83,4 +83,6 @@ In the obs-settings folder of there is a .json file which you can import into OB
 
 To stream you can use something like Larix Broadcaster on iOS (or any other SRT or RTMP capable software). Be aware that, depending if you are using RTMP (=TCP) or SRT (=UDP) you have to configure all parts properly.
 
+Also, the IP Adress 192.168.178.9 is just an example I was using - apply your host/ip of where the irl-obs-switcher is listening and then forwarding to your OBS.
+
 ![](obs-settings/larix-broadcaster-settings.png)
