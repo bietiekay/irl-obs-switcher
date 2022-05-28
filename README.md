@@ -78,3 +78,9 @@ In the obs-settings folder of there is a .json file which you can import into OB
 
 ### disconnected scene
 ![](obs-settings/disconnected%20scene.png)
+
+### larix broadcaster settings
+
+To stream you can use something like Larix Broadcaster on iOS (or any other SRT or RTMP capable software). Be aware that, depending if you are using RTMP (=TCP) or SRT (=UDP) you have to configure all parts properly.
+
+![](obs-settings/larix-broadcaster-settings.png)
