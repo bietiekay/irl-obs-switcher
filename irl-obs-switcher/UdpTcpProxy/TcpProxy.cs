@@ -20,7 +20,7 @@ namespace NetProxy
         public int ConnectionTimeout { get; set; } = (4 * 60 * 1000);
         public IRLOBSSwitcher.OBSManager? OBS_SceneManager;
 
-        public async Task Start(string remoteServerHostNameOrAddress, ushort timeOut, ushort sceneSwitchOverTime, ushort remoteServerPort, ushort localPort, IRLOBSSwitcher.OBSManager OBS_Manager, string? localIp)
+        public async Task Start(string remoteServerHostNameOrAddress, ushort timeOut, ushort sceneSwitchOverTime, ushort minimalKbitperSecond, ushort remoteServerPort, ushort localPort, IRLOBSSwitcher.OBSManager OBS_Manager, string? localIp)
         {
             ConnectionTimeout = timeOut;
             var connections = new ConcurrentBag<TcpConnection>();
@@ -66,7 +66,7 @@ namespace NetProxy
                     var ips = await Dns.GetHostAddressesAsync(remoteServerHostNameOrAddress).ConfigureAwait(false);
 
                     var tcpConnection = await TcpConnection.AcceptTcpClientAsync(OBS_SceneManager, localServer,
-                            new IPEndPoint(ips[0], remoteServerPort), sceneSwitchOverTime)
+                            new IPEndPoint(ips[0], remoteServerPort), sceneSwitchOverTime, minimalKbitperSecond)
                         .ConfigureAwait(false);
                     tcpConnection.Run();
                     connections.Add(tcpConnection);
@@ -93,21 +93,26 @@ namespace NetProxy
         public long LastActivity { get; private set; } = Environment.TickCount64;
         private IRLOBSSwitcher.OBSManager? OBS_SceneManager;
         private ushort _SceneSwitchOverTime;
+        private DateTime _lastDataTransferInterval = DateTime.Now;
+        private long _bytesTransferredInInterval = 0;
+        public long DataRate { get; private set; } = 0;
+        private ushort _minimalKbitperSecond;
 
-        public static async Task<TcpConnection> AcceptTcpClientAsync(IRLOBSSwitcher.OBSManager OBS_Manager, TcpListener tcpListener, IPEndPoint remoteEndpoint, ushort SceneSwitchOverTime)
+        public static async Task<TcpConnection> AcceptTcpClientAsync(IRLOBSSwitcher.OBSManager OBS_Manager, TcpListener tcpListener, IPEndPoint remoteEndpoint, ushort SceneSwitchOverTime, ushort minimalKbitperSecond)
         {
             var localServerConnection = await tcpListener.AcceptTcpClientAsync().ConfigureAwait(false);
             localServerConnection.NoDelay = true;
-            return new TcpConnection(OBS_Manager, localServerConnection, remoteEndpoint, SceneSwitchOverTime);
+            return new TcpConnection(OBS_Manager, localServerConnection, remoteEndpoint, SceneSwitchOverTime, minimalKbitperSecond);
         }
 
-        private TcpConnection(IRLOBSSwitcher.OBSManager OBS_Manager, TcpClient localServerConnection, IPEndPoint remoteEndpoint, ushort SceneSwitchOverTime)
+        private TcpConnection(IRLOBSSwitcher.OBSManager OBS_Manager, TcpClient localServerConnection, IPEndPoint remoteEndpoint, ushort SceneSwitchOverTime, ushort minimalKbitperSecond)
         {
             OBS_SceneManager = OBS_Manager;
 
             _localServerConnection = localServerConnection;
             _remoteEndpoint = remoteEndpoint;
             _SceneSwitchOverTime = SceneSwitchOverTime;
+            _minimalKbitperSecond = minimalKbitperSecond;
             _forwardClient = new TcpClient {NoDelay = true};
 
             _sourceEndpoint = _localServerConnection.Client.RemoteEndPoint;
@@ -146,7 +151,7 @@ namespace NetProxy
                         ConsoleLog.WriteLine($"Established TCP {_sourceEndpoint} => {_serverLocalEndpoint} => {_forwardLocalEndpoint} => {_remoteEndpoint}");
 
                         // Tell OBS Manager about the new connection
-                        OBS_SceneManager?.Connect();
+                        //OBS_SceneManager?.Connect();
 
                         using (var serverStream = _forwardClient.GetStream())
                         using (var clientStream = _localServerConnection.GetStream())
@@ -178,11 +183,24 @@ namespace NetProxy
 
         private async Task CopyToAsync(Stream source, Stream destination, int bufferSize = 81920, Direction direction = Direction.Unknown, CancellationToken cancellationToken = default)
         {
+            DateTime started = DateTime.Now;
             byte[] buffer = ArrayPool<byte>.Shared.Rent(bufferSize);
             try
             {
                 while (true)
                 {
+                    if (started != DateTime.MaxValue)
+                    {
+                        // only switch to connected after n seconds of "uptime" of this stream
+                        // configurable per UDP connection
+                        if ((DateTime.Now - started).TotalMilliseconds >= _SceneSwitchOverTime)
+                        {
+                            // Tell OBS Manager about the connection
+                            OBS_SceneManager?.Connect();
+                            started = DateTime.MaxValue;
+                        }
+                    }
+
                     int bytesRead = await source.ReadAsync(new Memory<byte>(buffer), cancellationToken).ConfigureAwait(false);
                     if (bytesRead == 0) break;
                     LastActivity = Environment.TickCount64;
@@ -192,11 +210,64 @@ namespace NetProxy
                     {
                         case Direction.Forward:
                             Interlocked.Add(ref _totalBytesForwarded, bytesRead);
+                            // add up the transferred bytes...
+                            Interlocked.Add(ref _bytesTransferredInInterval, bytesRead);
+
                             break;
                         case Direction.Responding:
                             Interlocked.Add(ref _totalBytesResponded, bytesRead);
                             break;
                     }
+
+                    #region data rate calculations                
+                    // if we gathered data for at least 1 second we calculate and reset the interval...
+                    if ((DateTime.Now - _lastDataTransferInterval).TotalSeconds >= 1)
+                    {
+                        if (_bytesTransferredInInterval > 0)
+                        {
+                            // do the calculation of data rate
+                            // data rate is the amount of transferred data in the intervall divided by the seconds of the intervall
+                            DataRate = Convert.ToInt64(Math.Floor(_bytesTransferredInInterval / (DateTime.Now - _lastDataTransferInterval).TotalSeconds) / 128);
+                            //ConsoleLog.WriteLine($"Data Rate: {DataRate} kbit/s");
+                            _lastDataTransferInterval = DateTime.Now;
+                            _bytesTransferredInInterval = 0;
+                        }
+                        else DataRate = 0;
+                    }
+                    #endregion
+
+                    #region switch scenes based on data rate
+                    // check if we had been connected long enough
+                    if (started == DateTime.MaxValue)
+                    {
+                        if (DataRate >= _minimalKbitperSecond)
+                        {
+                            // data rate is high enough, if we are in the disconnect scene, switch...
+                            if (OBS_SceneManager != null)
+                            {
+                                if (!OBS_SceneManager.CurrentlyConnected)
+                                {
+                                    // switch
+                                    ConsoleLog.WriteLine($"Data Rate is high enough ({DataRate} kbit/s) - switching to connected scene.");
+                                    OBS_SceneManager?.Connect();
+                                }
+                            }
+                            OBS_SceneManager?.Connect();
+                        } else
+                        {
+                            // data rate is not high enough
+                            if (OBS_SceneManager != null)
+                            {
+                                if (OBS_SceneManager.CurrentlyConnected)
+                                {
+                                    // switch
+                                    ConsoleLog.WriteLine($"Data Rate is too low ({DataRate} kbit/s) - switching to disconnected scene.");
+                                    OBS_SceneManager?.Disconnect();
+                                }
+                            }
+                        }
+                    }
+                    #endregion
                 }
             }
             finally

@@ -14,7 +14,8 @@
       "forwardHost": "127.0.0.1",
       "forwardPort": 10000,
       "timeOut": 500,
-      "switchToConnectedTime": 1000
+      "switchToConnectedTime": 1000,
+      "minimalkBitperSecond":400 
     }  
   ]
 }

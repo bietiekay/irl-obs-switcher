@@ -1,4 +1,5 @@
 ﻿using ConsoleLogger;
+using System.Reflection;
 
 namespace IRLOBSSwitcher
 {
@@ -8,7 +9,9 @@ namespace IRLOBSSwitcher
 
         private static void Main(string[] args)
         {
-            ConsoleLog.WriteLine("IRL OBS Switcher and Proxy");
+            String? version = Assembly.GetEntryAssembly()?.GetCustomAttribute<AssemblyFileVersionAttribute>()?.Version;
+
+            ConsoleLog.WriteLine($"IRL OBS Switcher and Proxy - version {version}");
             ConsoleLog.WriteLine("(C) Daniel Kirstenpfad 2022 - https://github.com/bietiekay/irl-obs-switcher");
 
             if (!File.Exists(ConfigurationFilename))

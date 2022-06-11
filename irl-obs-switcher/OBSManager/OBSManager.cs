@@ -25,7 +25,7 @@ namespace IRLOBSSwitcher
         protected OBSWebsocket obs;
         private String currentOBSScene = "";
         private OutputState currentOBSStreamState = OutputState.Stopped;
-        private bool CurrentlyConnected = false;
+        public bool CurrentlyConnected { get; private set; } = false;
 
         public OBSManager(OBSWebSocketConnection? OBSWebSocketConnectionConfiguration)
         {

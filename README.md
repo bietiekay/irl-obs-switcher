@@ -14,6 +14,14 @@ It offers a simple JSON formatted configuration file (config.json) where you def
 
 Furthermore you configure the target IP and Port where you want the data to be delivered to as well as a couple of timeouts.
 
+## Features
+- forward any stream using srt, rtmp, tcp or plain udp protocols to any IP
+- IPv4 and IPv6 and mixed scenarios supported
+- switch OBS scenes (by using OBS WebSocket) automatically based on simple rules
+	- after n seconds (configurable) upon connect
+	- when the data rate is at least over a configurable rate in kbit/s or below
+- write a file when a successful connection is made (semaphore)
+
 ### Limitations
 Each remote client is mapped to a port of the local server therefore:
 - The original IP of the client is hidden to the server the packets are forwarded to.
@@ -39,6 +47,7 @@ Each remote client is mapped to a port of the local server therefore:
       "forwardPort": 10000,
       "timeOut": 500,
       "switchToConnectedTime": 1000
+	  "minimalkBitperSecond": 400
     }  
   ]
 }
@@ -56,6 +65,7 @@ Each remote client is mapped to a port of the local server therefore:
 - *forwardPort* : The port the traffic will be forwarded to.
 - *timeOut* : The timeout in milliseconds to detect disconnects - this is the time after the switch to the disconnected OBS scene is made
 - *switchToConnectedTime* : The wait time in milliseconds after a successful connect before switching to the connected OBS scene
+- *minimalkBitperSecond* : The minimum kbit per second (bits not bytes!) of transfer rate to be and stay in the connected OBS scene
 
 ## running in a container
 This software can be run almost on any platform and comes with a Dockerfile in the irl-obs-switcher directory.
