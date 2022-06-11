@@ -30,6 +30,7 @@ Each remote client is mapped to a port of the local server therefore:
 ## Configuration
 `config.json` contains the OBS WebSocket configuration and a list of forwarding rules, for instance :
 
+``` json
 {
   "OBSWebSocketConnection": {
     "OBSWebSocketHost": "localhost",
@@ -51,6 +52,7 @@ Each remote client is mapped to a port of the local server therefore:
     }  
   ]
 }
+```
 
 - *OBSWebSocketHost* : The hostname/ip adress of the OBS WebSocket server
 - *OBSWebSocketPort* : The port of the OBS WebSocket server as you configured it
