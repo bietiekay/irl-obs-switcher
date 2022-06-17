@@ -27,6 +27,9 @@ Each remote client is mapped to a port of the local server therefore:
 - The original IP of the client is hidden to the server the packets are forwarded to.
 - The number of concurrent clients is limited by the number of available ports in the server running the proxy.
 
+### Pre-Requisites
+This tool is using the .NET 6.0 framework which can be freely downloaded here: [dotnet 6](https://dotnet.microsoft.com/en-us/download/dotnet/6.0)
+
 ## Configuration
 `config.json` contains the OBS WebSocket configuration and a list of forwarding rules, for instance :
 
