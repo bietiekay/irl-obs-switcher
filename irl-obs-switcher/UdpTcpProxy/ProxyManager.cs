@@ -43,7 +43,7 @@ namespace IRLOBSSwitcher
                 if (protocol != null)
                     protocol = protocol.ToLower();
 
-                if (protocol != "udp" && protocol != "tcp" && protocol != "any" && protocol != "srt" && protocol != "rtmp")
+                if (protocol != "udp" && protocol != "tcp" && protocol != "srt" && protocol != "rtmp")
                 {
                     throw new Exception($"protocol is not supported {protocol}");
                 }
@@ -56,7 +56,7 @@ namespace IRLOBSSwitcher
             #endregion
 
             bool protocolHandled = false;
-            if (protocol == "udp" || protocol == "srt" || protocol == "any")
+            if (protocol == "udp" || protocol == "srt")
             {
                 protocolHandled = true;
                 Task task;
@@ -74,7 +74,7 @@ namespace IRLOBSSwitcher
                 yield return task;
             }
 
-            if (protocol == "tcp" || protocol == "rtmp" || protocol == "any")
+            if (protocol == "tcp" || protocol == "rtmp")
             {
                 protocolHandled = true;
                 Task task;
