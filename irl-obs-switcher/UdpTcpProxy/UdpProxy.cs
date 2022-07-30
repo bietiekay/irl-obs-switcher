@@ -4,6 +4,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -27,9 +28,21 @@ namespace NetProxy
             var ips = await Dns.GetHostAddressesAsync(remoteServerHostNameOrAddress).ConfigureAwait(false);
             var remoteServerEndPoint = new IPEndPoint(ips[0], remoteServerPort);
 
-            var localServer = new UdpClient(AddressFamily.InterNetworkV6);
-            localServer.Client.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.IPv6Only, false);
-            IPAddress localIpAddress = string.IsNullOrEmpty(localIp) ? IPAddress.IPv6Any : IPAddress.Parse(localIp);
+            var localServer = new UdpClient(AddressFamily.InterNetwork);
+            IPAddress localIpAddress;
+
+            if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            {
+                // on OSX for now only IPv4 support                
+                localIpAddress = string.IsNullOrEmpty(localIp) ? IPAddress.Any : IPAddress.Parse(localIp);
+            }
+            else
+            {
+                localServer = new UdpClient(AddressFamily.InterNetworkV6);
+                localServer.Client.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.IPv6Only, false);
+                localIpAddress = string.IsNullOrEmpty(localIp) ? IPAddress.IPv6Any : IPAddress.Parse(localIp);
+            }
+
             localServer.Client.Bind(new IPEndPoint(localIpAddress, localPort));
 
             ConsoleLog.WriteLine($"UDP proxy started [{localIpAddress}]:{localPort} -> [{remoteServerHostNameOrAddress}]:{remoteServerPort}");
@@ -68,8 +81,8 @@ namespace NetProxy
                 }
                 catch (Exception ex)
                 {
-                    //ConsoleLog.WriteLine($"an exception occurred on receiving a client datagram: {ex}");
-                    ConsoleLog.WriteLine("An exception occurred while trying to forward the data.");
+                    ConsoleLog.WriteLine($"an exception occurred on receiving a client datagram: {ex}");
+                    //ConsoleLog.WriteLine("An exception occurred while trying to forward the data.");
                     OBS_SceneManager?.Disconnect();
                 }
             }

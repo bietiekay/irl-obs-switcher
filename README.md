@@ -16,7 +16,7 @@ Furthermore you configure the target IP and Port where you want the data to be d
 
 ## Features
 - forward any stream using srt, rtmp, tcp or plain udp protocols to any IP
-- IPv4 and IPv6 and mixed scenarios supported
+- IPv4 and IPv6 and mixed scenarios supported (not on macOS currently)
 - switch OBS scenes (by using OBS WebSocket) automatically based on simple rules
 	- after n seconds (configurable) upon connect
 	- when the data rate is at least over a configurable rate in kbit/s or below
@@ -24,6 +24,7 @@ Furthermore you configure the target IP and Port where you want the data to be d
 
 ### Limitations
 Each remote client is mapped to a port of the local server therefore:
+- on macOS currently only IPv4 is supported
 - The original IP of the client is hidden to the server the packets are forwarded to.
 - The number of concurrent clients is limited by the number of available ports in the server running the proxy.
 
@@ -85,14 +86,28 @@ This will build the image and name it "irl-obs-switcher". The default config.jso
 
 Most probably you will want to change the forward hosts and OBS host settings to use the correct mapped ip adress depending on your environment.
 
+## make it run
+
+### on Windows
+Run the irl-obs-switcher file after you installed [dotnet 6](https://dotnet.microsoft.com/en-us/download/dotnet/6.0).
+
+### on Linux
+Same as on Windows - preferably you use the Docker/Container version.
+
+### on macOS
+To run this on macOS install [dotnet 6](https://dotnet.microsoft.com/en-us/download/dotnet/6.0) and download a release like on the other operating systems. Unpack the ZIP file and chmod +x the irl-obs-switcher file. Then run it in a terminal.
+
+You can find screenshots showcasing each step in the /documentation/mac-settings/ folder.
+
+
 ## configuration of OBS Studio
 In the obs-settings folder of there is a .json file which you can import into OBS and get some sample "connected" and "disconnected" scenes. Essentially this looks like this:
 
 ### connected scene
-![](obs-settings/connected-scene%20srt%20settings.png)
+![](documentation/obs-settings/connected-scene%20srt%20settings.png|400)
 
 ### disconnected scene
-![](obs-settings/disconnected%20scene.png)
+![](documentation/obs-settings/disconnected%20scene.png|400)
 
 ### larix broadcaster settings
 
@@ -100,4 +115,4 @@ To stream you can use something like Larix Broadcaster on iOS (or any other SRT 
 
 Also, the IP Adress 192.168.178.9 is just an example I was using - apply your host/ip of where the irl-obs-switcher is listening and then forwarding to your OBS.
 
-![](obs-settings/larix-broadcaster-settings.png)
+![](documentation/obs-settings/larix-broadcaster-settings.png|400)
