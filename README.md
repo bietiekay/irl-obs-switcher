@@ -97,17 +97,16 @@ Same as on Windows - preferably you use the Docker/Container version.
 ### on macOS
 To run this on macOS install [dotnet 6](https://dotnet.microsoft.com/en-us/download/dotnet/6.0) and download a release like on the other operating systems. Unpack the ZIP file and chmod +x the irl-obs-switcher file. Then run it in a terminal.
 
-You can find screenshots showcasing each step in the /documentation/mac-settings/ folder.
-
+You can find screenshots showcasing each step in the  [/documentation/mac-settings/](https://github.com/bietiekay/irl-obs-switcher/tree/master/documentation/mac-settings) folder.
 
 ## configuration of OBS Studio
 In the obs-settings folder of there is a .json file which you can import into OBS and get some sample "connected" and "disconnected" scenes. Essentially this looks like this:
 
 ### connected scene
-![](documentation/obs-settings/connected-scene%20srt%20settings.png|400)
+![](documentation/obs-settings/connected-scene%20srt%20settings.png)
 
 ### disconnected scene
-![](documentation/obs-settings/disconnected%20scene.png|400)
+![](documentation/obs-settings/disconnected%20scene.png)
 
 ### larix broadcaster settings
 
@@ -115,4 +114,4 @@ To stream you can use something like Larix Broadcaster on iOS (or any other SRT 
 
 Also, the IP Adress 192.168.178.9 is just an example I was using - apply your host/ip of where the irl-obs-switcher is listening and then forwarding to your OBS.
 
-![](documentation/obs-settings/larix-broadcaster-settings.png|400)
+![](documentation/obs-settings/larix-broadcaster-settings.png)
