@@ -24,7 +24,7 @@ namespace IRLOBSSwitcher
         private String? SemaphoreFileWhenConnected;
         protected OBSWebsocket obs;
         private String currentOBSScene = "";
-        private OutputState currentOBSStreamState = OutputState.Stopped;
+        private OutputState currentOBSStreamState = OutputState.OBS_WEBSOCKET_OUTPUT_STOPPED;
         public bool CurrentlyConnected { get; private set; } = false;
 
         public OBSManager(OBSWebSocketConnection? OBSWebSocketConnectionConfiguration)
@@ -45,9 +45,11 @@ namespace IRLOBSSwitcher
 
             obs.Connected += onConnect;
             obs.Disconnected += onDisconnect;
-            obs.SceneChanged += onSceneChange;
-            obs.StreamingStateChanged += onStreamingStateChange;
-            obs.StreamStatus += onStreamData;
+            obs.CurrentProgramSceneChanged += onCurrentProgramSceneChanged;
+            obs.CurrentPreviewSceneChanged += onCurrentProgramSceneChanged;
+            obs.CurrentSceneCollectionChanged += onCurrentProgramSceneChanged;
+            obs.StreamStateChanged += onStreamingStateChange;
+            //obs. += onStreamData;
 
             new Thread(() =>
             {
@@ -78,13 +80,14 @@ namespace IRLOBSSwitcher
                     } else
                     {
                         // connection is still there!
-                    }                    
-                    
-                    // only retry once a second
-                    Thread.Sleep(1000);
+                        var streamStats = obs.GetStreamStatus();
+                        if (streamStats.IsActive)
+                            ConsoleLog.WriteLine("Total Stream Time: " + TimeSpan.FromMilliseconds(streamStats.Duration).ToString(@"hh\:mm\:ss\:fff"));
+                    }
+                    // only retry per timeout intervall
+                    Thread.Sleep(500);
                 }
             }).Start();
-
 
         }
 
@@ -92,30 +95,36 @@ namespace IRLOBSSwitcher
         #region OBS WebSocket Eventhandling
         private void onConnect(object sender, EventArgs e)
         {
-            ConsoleLog.WriteLine("OBS WebSocket connection established.");
-            var currentScene = obs.GetCurrentScene();
+            var currentScene = obs.GetCurrentProgramScene();
             if (currentScene != null)
             {
                 currentOBSScene = currentScene.Name;
             }
 
-            var streamStatus = obs.GetStreamingStatus();
+            var streamStatus = obs.GetStreamStatus();
             // initially set OBS stream status
-            if (streamStatus.IsStreaming)
-                onStreamingStateChange(obs, OutputState.Started);
+            if (streamStatus.IsActive)
+                onStreamingStateChange(obs, OutputState.OBS_WEBSOCKET_OUTPUT_STARTED);
             else
-                onStreamingStateChange(obs, OutputState.Stopped);
+                onStreamingStateChange(obs, OutputState.OBS_WEBSOCKET_OUTPUT_STOPPED);
+
+            ConsoleLog.WriteLine("OBS WebSocket connection established.");
         }
 
-        private void onDisconnect(object sender, EventArgs e)
+        private void onDisconnect(object sender, OBSWebsocketDotNet.Communication.ObsDisconnectionInfo e)
         {
             ConsoleLog.WriteLine("OBS WebSocket connection lost.");
         }
 
-        private void onSceneChange(OBSWebsocket sender, string newSceneName)
+        private void onCurrentProgramSceneChanged(OBSWebsocket sender, string newSceneName)
         {
             ConsoleLog.WriteLine("OBS scene changed to "+ newSceneName);
             currentOBSScene = newSceneName;
+        }
+
+        private void onStreamingStateChange(OBSWebsocket sender, OutputStateChanged newState)
+        {
+            onStreamingStateChange(sender, newState.State);
         }
 
         private void onStreamingStateChange(OBSWebsocket sender, OutputState newState)
@@ -124,19 +133,19 @@ namespace IRLOBSSwitcher
 
             switch (newState)
             {
-                case OutputState.Starting:
+                case OutputState.OBS_WEBSOCKET_OUTPUT_STARTING:
                     ConsoleLog.WriteLine("Public Stream starting...");
                     break;
 
-                case OutputState.Started:
+                case OutputState.OBS_WEBSOCKET_OUTPUT_STARTED:
                     ConsoleLog.WriteLine("Public Stream started.");
                     break;
 
-                case OutputState.Stopping:
+                case OutputState.OBS_WEBSOCKET_OUTPUT_STOPPING:
                     ConsoleLog.WriteLine("Public Stream stopping...");
                     break;
 
-                case OutputState.Stopped:
+                case OutputState.OBS_WEBSOCKET_OUTPUT_STOPPED:
                     ConsoleLog.WriteLine("Public Stream stopped.");
                     break;
 
@@ -146,12 +155,12 @@ namespace IRLOBSSwitcher
             }
         }
 
-        private void onStreamData(OBSWebsocket sender, StreamStatus data)
-        {
-            // TODO: we are getting data here - do something with it
-            // data.TotalStreamTime...
-            ConsoleLog.WriteLine("Total Stream Time: " + TimeSpan.FromSeconds(data.TotalStreamTime).ToString(@"hh\:mm\:ss\:fff"));
-        }
+        //private void onStreamData(OBSWebsocket sender, StreamStatus data)
+        //{
+        //    // TODO: we are getting data here - do something with it
+        //    // data.TotalStreamTime...
+        //    ConsoleLog.WriteLine("Total Stream Time: " + TimeSpan.FromSeconds(data.TotalStreamTime).ToString(@"hh\:mm\:ss\:fff"));
+        //}
         #endregion
 
         #region Connection state changes of proxied connections
@@ -171,7 +180,7 @@ namespace IRLOBSSwitcher
                 #endregion
 
                 #region Set OBS Scene
-                obs.SetCurrentScene(OBS_SceneOnConnect);
+                obs.SetCurrentProgramScene(OBS_SceneOnConnect);
                 #endregion
 
                 // set connection status
@@ -196,7 +205,7 @@ namespace IRLOBSSwitcher
                 #endregion
 
                 #region Set OBS Scene
-                obs.SetCurrentScene(OBS_SceneOnDisconnect);
+                obs.SetCurrentProgramScene(OBS_SceneOnDisconnect);
                 #endregion
 
                 CurrentlyConnected = false;
